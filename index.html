@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog Card Generator (AACR2 / CCC)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #f8fafc; /* Very light background for modern look */
+        }
+        .container-card {
+            background-color: #ffffff;
+            /* Modern, subtle shadow */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); 
+        }
+        .input-field {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background-color: #f9fafb;
+        }
+        .input-field:focus {
+            border-color: #6366f1; /* Indigo focus color */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background-color: #ffffff;
+        }
+        /* Custom style for individual output cards - Classic look retained for functionality */
+        .aacr2-card, .ccc-card {
+            background-color: #fffdf9; /* Creamy card color */
+            border: 1px solid #e5e7eb; /* Light border */
+            line-height: 1.45;
+            font-size: 0.95rem;
+            min-height: 150px;
+            font-family: monospace, monospace;
+            white-space: pre-wrap;
+            tab-size: 1; 
+            word-break: break-all;
+            padding: 1.5rem; 
+            margin-bottom: 1rem;
+            /* Subtle shadow to lift the card */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+            position: relative;
+            border-radius: 4px; /* Slightly rounded corners for the card */
+        }
+        
+        /* AACR2 Indentation Guides */
+        .aacr2-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(1.5rem + 4ch); 
+            height: 100%;
+            width: 1px;
+            background-color: #e0e0e0;
+            opacity: 0.7;
+        }
+
+        .aacr2-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(1.5rem + 8ch); 
+            height: 100%;
+            width: 1px;
+            background-color: #e0e0e0;
+            opacity: 0.7;
+        }
+        
+        /* CCC Specific Indentation */
+        /* CCC 1st Vertical (8 spaces) */
+        .ccc-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(1.5rem + 8ch); 
+            height: 100%;
+            width: 1px;
+            background-color: #fca5a5; /* Light Red for CCC guide */
+            opacity: 0.7;
+        }
+
+        /* CCC 2nd Vertical (12 spaces) */
+        .ccc-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(1.5rem + 12ch); 
+            height: 100%;
+            width: 1px;
+            background-color: #fca5a5;
+            opacity: 0.7;
+        }
+        
+        /* Style for the card type label */
+        .card-label {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #4338ca; /* Darker indigo for contrast */
+            background-color: #eef2ff; /* Very light indigo background */
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+        
+        /* Modern output container design */
+        #catalogCardOutput {
+            min-height: 300px;
+            transition: all 0.3s ease-in-out;
+            background: #f1f5f9; /* Light gray background for output area */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="w-full max-w-6xl mx-auto p-6 md:p-12 container-card rounded-xl">
+        <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2">Catalog Card Generator</h1>
+        <p class="text-center text-gray-500 mb-2">Generate descriptive records in AACR2 or CCC format.</p>
+        <p class="text-center text-sm text-gray-500 mb-10">Developed by Dr. Dhaval Patel</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Input Form Section -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-semibold text-gray-700 border-b pb-3 mb-2">Bibliographic Data Input</h2>
+                <form id="aacr2Form" class="space-y-4">
+                    
+                    <!-- Code Selection -->
+                    <div class="p-4 bg-indigo-50 rounded-lg shadow-inner">
+                        <label class="block text-sm font-bold text-indigo-700 mb-2">Select Cataloging Code:</label>
+                        <div class="flex space-x-6">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="catalogingCode" value="aacr2" class="form-radio text-indigo-600 h-4 w-4" onchange="generateCard()">
+                                <span class="ml-2 text-gray-700 font-medium">AACR2</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="catalogingCode" value="ccc" checked class="form-radio text-indigo-600 h-4 w-4" onchange="generateCard()">
+                                <span class="ml-2 text-gray-700 font-medium">CCC</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Call Number & Main Entry -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="callNumber" class="block text-sm font-medium text-gray-700">Call/Class & Book Number</label>
+                            <input type="text" id="callNumber" placeholder="QA76.76.C67 (AACR2) or O152,1M97&#10;R97 (CCC)" class="input-field w-full" required>
+                        </div>
+                        <div>
+                            <label for="mainEntry" class="block text-sm font-medium text-gray-700">Main Entry (Author/Corp. Body)</label>
+                            <input type="text" id="mainEntry" placeholder="Smith, John A. (AACR2) or ROY, ARUNDHATI (CCC)" class="input-field w-full" required>
+                        </div>
+                    </div>
+
+                    <!-- Title & Subtitle -->
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700">Title Proper</label>
+                        <input type="text" id="title" placeholder="The Ultimate Guide to Cataloging" class="input-field w-full" required>
+                    </div>
+                    <div>
+                        <label for="subtitle" class="block text-sm font-medium text-gray-700">Subtitle (Optional)</label>
+                        <input type="text" id="subtitle" placeholder="With examples for digital resources" class="input-field w-full">
+                    </div>
+
+                    <!-- Responsibility & Edition -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="responsibility" class="block text-sm font-medium text-gray-700">Statement of Responsibility</label>
+                            <input type="text" id="responsibility" placeholder="compiled by Jane Doe" class="input-field w-full">
+                        </div>
+                        <div>
+                            <label for="edition" class="block text-sm font-medium text-gray-700">Edition (Optional)</label>
+                            <input type="text" id="edition" placeholder="3rd ed. (AACR2) or 3 (CCC)" class="input-field w-full">
+                        </div>
+                    </div>
+
+                    <!-- Publication Details -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label for="place" class="block text-sm font-medium text-gray-700">Place of Publication</label>
+                            <input type="text" id="place" placeholder="New York" class="input-field w-full" required>
+                        </div>
+                        <div>
+                            <label for="publisher" class="block text-sm font-medium text-gray-700">Publisher</label>
+                            <input type="text" id="publisher" placeholder="Library Press" class="input-field w-full" required>
+                        </div>
+                        <div>
+                            <label for="pubDate" class="block text-sm font-medium text-gray-700">Publication Date (Year)</label>
+                            <input type="number" id="pubDate" placeholder="2024" min="1900" max="2100" class="input-field w-full" required>
+                        </div>
+                    </div>
+
+                    <!-- Physical Description & ISBN/Acc No. -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="physicalDesc" class="block text-sm font-medium text-gray-700">Collation/Physical Description</label>
+                            <input type="text" id="physicalDesc" placeholder="350 p. : ill. ; 24 cm." class="input-field w-full" required>
+                        </div>
+                        <div>
+                            <label for="isbn" class="block text-sm font-medium text-gray-700">ISBN / Accession Number</label>
+                            <input type="text" id="isbn" placeholder="978-1234567890 (AACR2) or A12345 (CCC)" class="input-field w-full">
+                            <input type="hidden" id="accessionNumber" value="A12345">
+                        </div>
+                    </div>
+                    
+                    <!-- Notes/Series/Tracings -->
+                    <div>
+                        <label for="series" class="block text-sm font-medium text-gray-700">Series Statement (Optional)</label>
+                        <input type="text" id="series" placeholder="(Library Management Series ; v. 5)" class="input-field w-full">
+                    </div>
+
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700">Notes (Optional, one per line)</label>
+                        <textarea id="notes" rows="2" placeholder="Includes bibliography.&#10;Translated from German." class="input-field w-full"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="subjectHeadings" class="block text-sm font-medium text-gray-700">Subject Headings (AACR2) / Subject Tracings (CCC)</label>
+                        <textarea id="subjectHeadings" rows="3" placeholder="1. Cataloging. (AACR2) or LITERATURE.&#10;ENGLISH.&#10;FICTION. (CCC)" class="input-field w-full"></textarea>
+                    </div>
+                    <div>
+                        <label for="addedEntries" class="block text-sm font-medium text-gray-700">Added Entries (AACR2) / Book Tracings (CCC)</label>
+                        <textarea id="addedEntries" rows="2" placeholder="I. Doe, Jane. (AACR2) or Title. (CCC)" class="input-field w-full"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 pt-4">
+                        <button type="button" onclick="generateCard()" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition duration-200">
+                            Generate Catalog Cards
+                        </button>
+                        <button type="button" onclick="clearAll()" class="w-full py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
+                            Clear All
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Output Section -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-700 border-b pb-3 mb-2">Generated Cards Preview</h2>
+                <div id="catalogCardOutput" class="p-4 rounded-xl text-gray-800 bg-gray-50">
+                    <p id="initialMessage" class="text-center text-gray-400 py-16 transition-opacity duration-500">
+                        Enter the bibliographic data and click "Generate Catalog Cards" to view the results here.
+                    </p>
+                    <!-- Cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EM_DASH = '—';
+        const INDENT_AACR2_1 = '    ';   // 4 spaces (First Indentation)
+        const INDENT_AACR2_2 = '        '; // 8 spaces (Second Indentation)
+        const INDENT_CCC_1 = '        '; // 8 spaces (First Vertical)
+        const INDENT_CCC_2 = '            '; // 12 spaces (Second Vertical)
+        const PERIOD = '.';
+        
+        /**
+         * Clears all input fields and resets the output panel.
+         */
+        function clearAll() {
+            document.getElementById('aacr2Form').reset();
+            const outputDiv = document.getElementById('catalogCardOutput');
+            outputDiv.innerHTML = '<p id="initialMessage" class="text-center text-gray-400 py-16 transition-opacity duration-500">Enter the bibliographic data and click "Generate Catalog Cards" to view the results here.</p>';
+            // Reset to AACR2 on clear
+            document.querySelector('input[name="catalogingCode"][value="aacr2"]').checked = true;
+        }
+
+        /**
+         * Entry point to generate cards based on the selected cataloging code.
+         */
+        function generateCard() {
+            const code = document.querySelector('input[name="catalogingCode"]:checked').value;
+            const outputDiv = document.getElementById('catalogCardOutput');
+            const initialMessage = document.getElementById('initialMessage');
+            
+            // Clear previous content
+            outputDiv.innerHTML = '';
+            if(initialMessage) initialMessage.style.display = 'none';
+
+            // Get all common values
+            const mainEntry = document.getElementById('mainEntry').value.trim();
+            const title = document.getElementById('title').value.trim();
+            const subtitle = document.getElementById('subtitle').value.trim();
+            const responsibility = document.getElementById('responsibility').value.trim();
+            const edition = document.getElementById('edition').value.trim();
+            const place = document.getElementById('place').value.trim();
+            const publisher = document.getElementById('publisher').value.trim();
+            const pubDate = document.getElementById('pubDate').value.trim();
+            const physicalDesc = document.getElementById('physicalDesc').value.trim();
+            const callNumber = document.getElementById('callNumber').value.trim();
+            const subjectHeadings = document.getElementById('subjectHeadings').value.trim();
+            const addedEntries = document.getElementById('addedEntries').value.trim();
+            const isbn = document.getElementById('isbn').value.trim();
+            const series = document.getElementById('series').value.trim();
+            const notes = document.getElementById('notes').value.trim();
+            
+            // Basic validation
+            if (!mainEntry || !title || !place || !publisher || !pubDate || !physicalDesc || !callNumber) {
+                outputDiv.innerHTML = '<p class="text-center text-red-500 py-16">Please fill out all <span class="font-bold">required fields</span> (Call/Class No., Main Entry, Title, Place, Publisher, Date, and Collation) to generate the cards.</p>';
+                return;
+            }
+
+            // --- Determine which generation logic to run ---
+            if (code === 'aacr2') {
+                generateAACR2CardLogic({
+                    mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, isbn, callNumber, subjectHeadings, addedEntries, outputDiv, series, notes
+                });
+            } else if (code === 'ccc') {
+                // For CCC, we will assume 'isbn' contains the Accession Number.
+                const accessionNumber = isbn; 
+                generateCCCCardLogic({
+                    mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, accessionNumber, callNumber, subjectHeadings, addedEntries, series, notes, outputDiv
+                });
+            }
+        }
+
+        /**
+         * Creates a structured card element with heading and body.
+         * @param {string} heading - The top line for the card (e.g., Title, Subject). Null for Main Entry.
+         * @param {string} body - The descriptive body of the entry.
+         * @param {string} label - The type of card (e.g., 'Main Entry', 'Title Card').
+         * @param {string} callNumber - The call number text.
+         * @param {string} code - The cataloging code ('aacr2' or 'ccc').
+         * @returns {HTMLElement} A div element representing the formatted card.
+         */
+        function createCardElement(heading, body, label, callNumber, code) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = code === 'ccc' ? 'ccc-card' : 'aacr2-card';
+            
+            // Add a label for the card type
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'card-label';
+            labelSpan.textContent = label;
+            cardDiv.appendChild(labelSpan);
+
+            let cardText = '';
+
+            // 1. Call Number / Class Number
+            const callNumberLines = callNumber.split('\n');
+            cardText += callNumberLines.join('\n') + '\n\n';
+
+            // 2. Heading (if present)
+            if (heading) {
+                cardText += heading + '\n';
+            }
+
+            // 3. Body (Indented)
+            cardText += body;
+
+            cardDiv.textContent = cardText;
+            return cardDiv;
+        }
+
+
+        /**
+         * AACR2 Logic (Main Entry, Title, Subject, Added Entry Cards)
+         */
+        function generateAACR2CardLogic(data) {
+            const { mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, isbn, callNumber, subjectHeadings, addedEntries, outputDiv, series, notes } = data;
+            
+            // --- AACR2 Punctuation Definitions and Indents ---
+            const TITLE_RESPONSIBILITY_SEP = ' / ';
+            const TITLE_SUBTITLE_SEP = ' : ';
+            const PLACE_PUBLISHER_SEP = ' : ';
+            const PUBLISHER_DATE_SEP = ', ';
+
+            // --- Core Descriptive Body Generation ---
+
+            // Title and Statement of Responsibility Area (Starts at INDENT_AACR2_2 on Main Entry Card)
+            let titleArea = title;
+            if (subtitle) {
+                titleArea += TITLE_SUBTITLE_SEP + subtitle;
+            }
+            if (responsibility) {
+                titleArea += TITLE_RESPONSIBILITY_SEP + responsibility;
+            }
+            titleArea += PERIOD;
+
+            let descriptiveBodyParts = [];
+
+            // 1. Title Area
+            descriptiveBodyParts.push(INDENT_AACR2_2 + titleArea);
+
+            // 2. Edition Area (if present)
+            if (edition) {
+                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + edition + PERIOD);
+            }
+
+            // 3. Publication, Distribution, etc., Area
+            let pubArea = place + PLACE_PUBLISHER_SEP + publisher + PUBLISHER_DATE_SEP + pubDate + PERIOD;
+            descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + pubArea);
+            
+            // 4. Physical Description Area
+            descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + physicalDesc);
+            
+            // 5. Series Area (if present)
+            if (series) {
+                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + series + PERIOD);
+            }
+
+            // 6. Notes Area (if present)
+            if (notes) {
+                 const noteLines = notes.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                 noteLines.forEach(note => {
+                     descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + note + PERIOD);
+                 });
+            }
+
+            // 7. ISBN Area
+            if (isbn) {
+                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + 'ISBN ' + isbn);
+            }
+            
+            // Join descriptive areas (excluding Main Entry)
+            const coreDescriptiveBody = descriptiveBodyParts.join('\n') + '\n';
+            
+            // --- Tracings Generation (Always starting flush left after body) ---
+            let tracingSection = '\n'; 
+
+            // Subject Headings (1-, 2-, 3-, ...)
+            if (subjectHeadings) {
+                tracingSection += subjectHeadings.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n') + '\n';
+            }
+            
+            // Added Entries (I., II., III., ...)
+            if (addedEntries) {
+                tracingSection += addedEntries.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n') + '\n';
+            }
+            
+            // --- Card Assembly ---
+            
+            // 1. Main Entry Card
+            // Body starts with Main Entry (INDENT_AACR2_1) followed by descriptive data 
+            const mainEntryBody = INDENT_AACR2_1 + mainEntry + PERIOD + '\n' + coreDescriptiveBody + tracingSection;
+            outputDiv.appendChild(createCardElement(null, mainEntryBody, 'AACR2 Main Entry Card', callNumber, 'aacr2'));
+
+
+            // 2. Title Card
+            // Heading: Title (Flush Left)
+            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
+            const titleHeading = title.toUpperCase() + PERIOD; 
+            // In Added Entries, the main entry (ME) line should be indented to 2nd position (INDENT_AACR2_2)
+            const titleBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
+            outputDiv.appendChild(createCardElement(titleHeading, titleBody, 'AACR2 Title Card', callNumber, 'aacr2'));
+
+
+            // 3. Subject Cards
+            // Heading: Subject (Flush Left)
+            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
+            if (subjectHeadings) {
+                const subjects = subjectHeadings.split('\n').map(line => line.trim()); 
+                subjects.filter(s => s.length > 0).forEach(subjectLine => {
+                    const subjectText = subjectLine.replace(/^\d+\.\s*/, ''); 
+                    
+                    const subjectHeading = subjectText.toUpperCase() + PERIOD;
+                    const subjectBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
+                    
+                    outputDiv.appendChild(createCardElement(subjectHeading, subjectBody, 'AACR2 Subject Card', callNumber, 'aacr2'));
+                });
+            }
+
+            // 4. Added Entry Cards (Co-authors, Editors, Series, etc.)
+            // Heading: Added Entry (Flush Left)
+            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
+            if (addedEntries) {
+                const added = addedEntries.split('\n').map(line => line.trim());
+                // Filter out 'Title' entry as it is generated separately
+                added.filter(a => a.length > 0 && !a.toLowerCase().includes('title')).forEach(entryLine => {
+                    // Remove Roman numerals (I., II., etc.) and leading space/period
+                    const entryText = entryLine.replace(/^[I|V|X]+\.\s*/, '');
+                    
+                    const entryHeading = entryText + PERIOD;
+                    const entryBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
+                    
+                    outputDiv.appendChild(createCardElement(entryHeading, entryBody, 'AACR2 Added Entry Card', callNumber, 'aacr2'));
+                });
+            }
+        }
+        
+        /**
+         * CCC Logic (Main Entry Card) - Focusing on the Main Entry which defines the structure.
+         */
+        function generateCCCCardLogic(data) {
+            const { mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, accessionNumber, callNumber, subjectHeadings, addedEntries, series, notes, outputDiv } = data;
+            
+            // CCC Indents:
+            // INDENT_CCC_1 (8 spaces) - First Vertical (FV)
+            // INDENT_CCC_2 (12 spaces) - Second Vertical (SV)
+            
+            // --- CCC Main Entry Construction ---
+            let cccBody = '';
+            
+            // 1. Author Entry (Starts at SV)
+            // CCC Author is typically in ALL CAPS.
+            cccBody += INDENT_CCC_2 + mainEntry.toUpperCase() + PERIOD + '\n';
+            
+            // 2. Title Section (Starts at SV, Subsequent lines at FV)
+            let titleSection = title.trim();
+            if (subtitle) {
+                titleSection += ': ' + subtitle.trim();
+            }
+            if (responsibility) {
+                // CCC Responsibility (e.g., ed. by...) is often placed in the note area for complex cases, 
+                // but sometimes combined with the title/edition. We'll use the title line for simplicity.
+                titleSection += '; ' + responsibility.trim();
+            }
+            titleSection += PERIOD;
+            
+            let titleLines = titleSection.match(new RegExp(`.{1,${45}}`, 'g')) || [titleSection]; 
+            
+            cccBody += INDENT_CCC_2 + titleLines[0] + '\n';
+            for (let i = 1; i < titleLines.length; i++) {
+                cccBody += INDENT_CCC_1 + titleLines[i] + '\n';
+            }
+
+
+            // 3. Edition Section (Starts at FV)
+            if (edition) {
+                cccBody += INDENT_CCC_1 + edition + PERIOD + '\n';
+            }
+            
+            // 4. Collation Section (Starts at FV)
+            cccBody += INDENT_CCC_1 + physicalDesc + PERIOD + '\n';
+            
+            // 5. Series Section (Starts at FV, in parenthesis)
+            if (series) {
+                // CCC Series: (Series Name. Series No.)
+                cccBody += INDENT_CCC_1 + '(' + series + ')' + PERIOD + '\n';
+            }
+
+            // 6. Notes Section (Starts at FV)
+            if (notes) {
+                const noteLines = notes.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                noteLines.forEach(note => {
+                    cccBody += INDENT_CCC_1 + note + PERIOD + '\n';
+                });
+            }
+
+            // 7. Accession Number (Placed at the end, indented to FV)
+            if (accessionNumber) {
+                cccBody += '\n' + INDENT_CCC_1 + accessionNumber;
+            }
+            
+            // --- Card Assembly ---
+            
+            // 1. CCC Main Entry Card (ME)
+            // Call Number / Class Number is placed on the first two lines, flush left.
+            outputDiv.appendChild(createCardElement(null, cccBody, 'CCC Main Entry Card', callNumber, 'ccc'));
+
+            // 2. CCC Book Index Cards (Author, Collaborators, Series, Title)
+            // Heading: Starts at FV (for non-CCC/CC entry)
+            // Body: Starts at SV, contains the Class Number.
+            const bookIndexEntries = addedEntries.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            
+            if (bookIndexEntries.length > 0) {
+                 const indexBody = callNumber.split('\n').map(line => INDENT_CCC_2 + line.trim()).join('\n');
+                
+                bookIndexEntries.forEach(entry => {
+                    const heading = INDENT_CCC_1 + entry.toUpperCase() + PERIOD; // Book Index Entry starts at FV
+                    outputDiv.appendChild(createCardElement(heading, indexBody, 'CCC Book Index Card', callNumber, 'ccc'));
+                });
+            }
+            
+            // 3. CCC Class Index Cards (Subject Tracings - Chain Procedure)
+            if (subjectHeadings) {
+                 const subjects = subjectHeadings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                 
+                 subjects.forEach(subjectLine => {
+                    // Subject Class Heading (Chain Procedure output, e.g., LITERATURE.) - Flush left
+                    const heading = subjectLine.toUpperCase() + PERIOD; 
+                    
+                    // Body: Repeat Class Number (CC) at FV
+                    const classBody = callNumber.split('\n').filter((_, i) => i === 0).map(line => INDENT_CCC_1 + line.trim()).join('\n');
+
+                    outputDiv.appendChild(createCardElement(heading, classBody, 'CCC Class Index Card', callNumber, 'ccc'));
+                });
+            }
+        }
+
+
+        // Set up the initial state: populate fields with sample data and generate cards.
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate fields with CCC Sample data
+            document.getElementById('callNumber').value = 'O152,1M97\nR97'; // CCC: Class No. + Book No.
+            document.getElementById('mainEntry').value = 'ROY, ARUNDHATI';
+            document.getElementById('title').value = 'The God of Small Things';
+            document.getElementById('subtitle').value = 'A Novel';
+            document.getElementById('responsibility').value = 'by Arundhati Roy';
+            document.getElementById('edition').value = '1st ed.';
+            document.getElementById('place').value = 'New Delhi';
+            document.getElementById('publisher').value = 'India Ink';
+            document.getElementById('pubDate').value = '1997';
+            document.getElementById('physicalDesc').value = '340p. 20cm.'; // CCC collation is shorter
+            document.getElementById('isbn').value = 'A12345'; // Used as Accession Number for CCC
+            document.getElementById('series').value = 'Novel Series ; v. 3';
+            document.getElementById('notes').value = 'Includes glossary.';
+            document.getElementById('subjectHeadings').value = 'LITERATURE.\nENGLISH.\nFICTION.\nINDIAN AUTHORS.'; // CCC Subject Headings
+            document.getElementById('addedEntries').value = 'TITLE.\nSeries.';
+            
+            // Automatically generate cards on load for immediate display (CCC selected by default now)
+            document.querySelector('input[name="catalogingCode"][value="ccc"]').checked = true;
+            generateCard();
+        });
+    </script>
+</body>
+</html>
