@@ -3,612 +3,1352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalog Card Generator (AACR2 / CCC)</title>
-    <!-- Load Tailwind CSS -->
+    <title>AACR2 Cataloging Simulator & Added Entry Generator - MLIS Lab</title>
+    <!-- Tailwind CSS for modern responsive layout -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            background: #f8fafc; /* Very light background for modern look */
+        
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    min-height: 100vh;
+}
+        :root {
+            --primary-blue: #2563eb;
+            --primary-dark: #1e3a8a;
+            --card-line-height: 24px;
+            --paper-color: #faf8f5;
         }
-        .container-card {
-            background-color: #ffffff;
-            /* Modern, subtle shadow */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); 
+
+        
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        .input-field {
-            border: 1px solid #e2e8f0;
-            padding: 10px;
+
+        /* Glassmorphic Panel styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.06), 0 1px 5px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Typewriter styled physical Library Index Card */
+        .library-card-container {
+            perspective: 1200px;
+            width: 100%;
+            max-width: 540px;
+        }
+
+        .library-card {
+            background-color: var(--paper-color);
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.1), 
+                        0 10px 20px -5px rgba(0, 0, 0, 0.05),
+                        inset 0 0 40px rgba(239, 68, 68, 0.01);
+            border: 1px solid rgba(226, 232, 240, 0.8);
             border-radius: 8px;
-            transition: all 0.2s;
-            background-color: #f9fafb;
-        }
-        .input-field:focus {
-            border-color: #6366f1; /* Indigo focus color */
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-            background-color: #ffffff;
-        }
-        /* Custom style for individual output cards - Classic look retained for functionality */
-        .aacr2-card, .ccc-card {
-            background-color: #fffdf9; /* Creamy card color */
-            border: 1px solid #e5e7eb; /* Light border */
-            line-height: 1.45;
-            font-size: 0.95rem;
-            min-height: 150px;
-            font-family: monospace, monospace;
-            white-space: pre-wrap;
-            tab-size: 1; 
-            word-break: break-all;
-            padding: 1.5rem; 
-            margin-bottom: 1rem;
-            /* Subtle shadow to lift the card */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+            width: 100%;
+            aspect-ratio: 5 / 3;
+            font-family: 'Courier Prime', monospace;
+            font-size: 13.5px;
+            line-height: var(--card-line-height);
+            color: #1a1a1a;
             position: relative;
-            border-radius: 4px; /* Slightly rounded corners for the card */
-        }
-        
-        /* AACR2 Indentation Guides */
-        .aacr2-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: calc(1.5rem + 4ch); 
-            height: 100%;
-            width: 1px;
-            background-color: #e0e0e0;
-            opacity: 0.7;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+            user-select: none;
         }
 
-        .aacr2-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: calc(1.5rem + 8ch); 
-            height: 100%;
-            width: 1px;
-            background-color: #e0e0e0;
-            opacity: 0.7;
-        }
-        
-        /* CCC Specific Indentation */
-        /* CCC 1st Vertical (8 spaces) */
-        .ccc-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: calc(1.5rem + 8ch); 
-            height: 100%;
-            width: 1px;
-            background-color: #fca5a5; /* Light Red for CCC guide */
-            opacity: 0.7;
+        /* Interactive animated state for card updates */
+        .library-card.updating {
+            transform: rotateX(10deg) rotateY(10deg) scale(0.95);
+            opacity: 0.8;
         }
 
-        /* CCC 2nd Vertical (12 spaces) */
-        .ccc-card::after {
-            content: '';
+        /* Dynamic 3D card page-flip animations for tab changes */
+        @keyframes pageFlip {
+            0% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(90deg) scale(0.95); opacity: 0.5; }
+            100% { transform: rotateY(0deg) scale(1); }
+        }
+
+        .library-card.flipped {
+            animation: pageFlip 0.5s ease-in-out;
+        }
+
+        /* Index Card Grid Lines (Red vertical margins, Blue ruled lines) */
+        .library-card.ruled-active {
+            background-image: 
+                /* Horizontal ruled lines (blue) */
+                repeating-linear-gradient(transparent, transparent calc(var(--card-line-height) - 1px), #dbeafe calc(var(--card-line-height) - 1px), #dbeafe var(--card-line-height));
+            background-position: 0 44px;
+        }
+
+        /* Red vertical margins (1st, 2nd, and 3rd indents on traditional card stock) */
+        .library-card .vertical-rules {
             position: absolute;
             top: 0;
-            left: calc(1.5rem + 12ch); 
-            height: 100%;
-            width: 1px;
-            background-color: #fca5a5;
-            opacity: 0.7;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        
-        /* Style for the card type label */
-        .card-label {
+
+        .library-card.ruled-active .vertical-rules {
+            opacity: 1;
+        }
+
+        /* 1st Indent Spacing marker (Red Line at character 9) */
+        .first-indent-rule {
             position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #4338ca; /* Darker indigo for contrast */
-            background-color: #eef2ff; /* Very light indigo background */
-            padding: 2px 8px;
-            border-radius: 9999px;
+            left: 78px; 
+            top: 0;
+            bottom: 0;
+            border-left: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .first-indent-rule::before {
+            content: '9';
+            position: absolute;
+            top: 4px;
+            left: -12px;
+            font-size: 8px;
+            color: rgba(239, 68, 68, 0.6);
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+
+        /* 2nd Indent Spacing marker (Red Line at character 11) */
+        .second-indent-rule {
+            position: absolute;
+            left: 96px; 
+            top: 0;
+            bottom: 0;
+            border-left: 1px dashed rgba(239, 68, 68, 0.3);
+        }
+        .second-indent-rule::before {
+            content: '11';
+            position: absolute;
+            top: 4px;
+            left: 2px;
+            font-size: 8px;
+            color: rgba(239, 68, 68, 0.5);
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+
+        /* 3rd Indent Spacing marker (Red Line at character 13) */
+        .third-indent-rule {
+            position: absolute;
+            left: 114px; 
+            top: 0;
+            bottom: 0;
+            border-left: 1px dotted rgba(239, 68, 68, 0.25);
+        }
+        .third-indent-rule::before {
+            content: '13';
+            position: absolute;
+            top: 4px;
+            left: 2px;
+            font-size: 8px;
+            color: rgba(239, 68, 68, 0.4);
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+
+        /* Realistic Punch Hole simulation */
+        .punch-hole {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #cbd5e1;
+            box-shadow: inset 1px 1.5px 3px rgba(0, 0, 0, 0.2);
+            border: 1px solid #94a3b8;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        /* Indent paddings mapped to standard spacing logic */
+        .card-content-area {
+            padding-top: 44px; /* Align content below standard margin line */
+            padding-left: 20px;
+            padding-right: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .call-number-block {
+            position: absolute;
+            left: 15px;
+            top: 44px;
+            width: 55px;
+            font-weight: 700;
+            word-wrap: break-word;
+            z-index: 20;
+            transition: color 0.3s ease;
+        }
+
+        .main-text-block {
+            margin-left: 60px; /* Aligns left edge exactly next to Call No block */
+        }
+
+        /* Indentation CSS classes corresponding to AACR2 Rules */
+        .indent-1st {
+            padding-left: 18px; /* Character 9 shift */
+            text-indent: -18px;
+        }
+
+        .indent-2nd {
+            padding-left: 36px; /* Character 11 shift */
+            text-indent: -36px;
+        }
+
+        .indent-3rd {
+            padding-left: 54px; /* Character 13 shift (Hanging indent follow-ups) */
+            text-indent: -54px;
+        }
+
+        /* Highlighting interactive segments for study */
+        .study-segment {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border-radius: 4px;
+            display: inline;
+            padding: 1px 2px;
+        }
+
+        .study-segment:hover, .study-segment.active-highlight {
+            background-color: rgba(59, 130, 246, 0.12);
+            outline: 1.5px dashed rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Custom inputs with modern micro-animations */
+        .input-animate {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* Modern output container design */
-        #catalogCardOutput {
-            min-height: 300px;
-            transition: all 0.3s ease-in-out;
-            background: #f1f5f9; /* Light gray background for output area */
+        .input-animate:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -8px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Animated Button pulsing */
+        .btn-pulse {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-pulse::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%;
+            transition: transform 0.5s ease;
+        }
+
+        .btn-pulse:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0s;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: white;
+            }
+            .library-card {
+                box-shadow: none !important;
+                border: 1px solid #000000 !important;
+                transform: none !important;
+                background: white !important;
+                width: 5in !important;
+                height: 3in !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .punch-hole {
+                border: 1px solid #000000 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 antialiased">
 
-    <div class="w-full max-w-6xl mx-auto p-6 md:p-12 container-card rounded-xl">
-        <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2">Catalog Card Generator</h1>
-        <p class="text-center text-gray-500 mb-2">Generate descriptive records in AACR2 or CCC format.</p>
-        <p class="text-center text-sm text-gray-500 mb-10">Developed by Dr. Dhaval Patel</p>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <!-- Input Form Section -->
-            <div class="space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700 border-b pb-3 mb-2">Bibliographic Data Input</h2>
-                <form id="aacr2Form" class="space-y-4">
-                    
-                    <!-- Code Selection -->
-                    <div class="p-4 bg-indigo-50 rounded-lg shadow-inner">
-                        <label class="block text-sm font-bold text-indigo-700 mb-2">Select Cataloging Code:</label>
-                        <div class="flex space-x-6">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="catalogingCode" value="aacr2" class="form-radio text-indigo-600 h-4 w-4" onchange="generateCard()">
-                                <span class="ml-2 text-gray-700 font-medium">AACR2</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="catalogingCode" value="ccc" checked class="form-radio text-indigo-600 h-4 w-4" onchange="generateCard()">
-                                <span class="ml-2 text-gray-700 font-medium">CCC</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Call Number & Main Entry -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="callNumber" class="block text-sm font-medium text-gray-700">Call/Class & Book Number</label>
-                            <input type="text" id="callNumber" placeholder="QA76.76.C67 (AACR2) or O152,1M97&#10;R97 (CCC)" class="input-field w-full" required>
-                        </div>
-                        <div>
-                            <label for="mainEntry" class="block text-sm font-medium text-gray-700">Main Entry (Author/Corp. Body)</label>
-                            <input type="text" id="mainEntry" placeholder="Smith, John A. (AACR2) or ROY, ARUNDHATI (CCC)" class="input-field w-full" required>
-                        </div>
-                    </div>
-
-                    <!-- Title & Subtitle -->
-                    <div>
-                        <label for="title" class="block text-sm font-medium text-gray-700">Title Proper</label>
-                        <input type="text" id="title" placeholder="The Ultimate Guide to Cataloging" class="input-field w-full" required>
-                    </div>
-                    <div>
-                        <label for="subtitle" class="block text-sm font-medium text-gray-700">Subtitle (Optional)</label>
-                        <input type="text" id="subtitle" placeholder="With examples for digital resources" class="input-field w-full">
-                    </div>
-
-                    <!-- Responsibility & Edition -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="responsibility" class="block text-sm font-medium text-gray-700">Statement of Responsibility</label>
-                            <input type="text" id="responsibility" placeholder="compiled by Jane Doe" class="input-field w-full">
-                        </div>
-                        <div>
-                            <label for="edition" class="block text-sm font-medium text-gray-700">Edition (Optional)</label>
-                            <input type="text" id="edition" placeholder="3rd ed. (AACR2) or 3 (CCC)" class="input-field w-full">
-                        </div>
-                    </div>
-
-                    <!-- Publication Details -->
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label for="place" class="block text-sm font-medium text-gray-700">Place of Publication</label>
-                            <input type="text" id="place" placeholder="New York" class="input-field w-full" required>
-                        </div>
-                        <div>
-                            <label for="publisher" class="block text-sm font-medium text-gray-700">Publisher</label>
-                            <input type="text" id="publisher" placeholder="Library Press" class="input-field w-full" required>
-                        </div>
-                        <div>
-                            <label for="pubDate" class="block text-sm font-medium text-gray-700">Publication Date (Year)</label>
-                            <input type="number" id="pubDate" placeholder="2024" min="1900" max="2100" class="input-field w-full" required>
-                        </div>
-                    </div>
-
-                    <!-- Physical Description & ISBN/Acc No. -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="physicalDesc" class="block text-sm font-medium text-gray-700">Collation/Physical Description</label>
-                            <input type="text" id="physicalDesc" placeholder="350 p. : ill. ; 24 cm." class="input-field w-full" required>
-                        </div>
-                        <div>
-                            <label for="isbn" class="block text-sm font-medium text-gray-700">ISBN / Accession Number</label>
-                            <input type="text" id="isbn" placeholder="978-1234567890 (AACR2) or A12345 (CCC)" class="input-field w-full">
-                            <input type="hidden" id="accessionNumber" value="A12345">
-                        </div>
-                    </div>
-                    
-                    <!-- Notes/Series/Tracings -->
-                    <div>
-                        <label for="series" class="block text-sm font-medium text-gray-700">Series Statement (Optional)</label>
-                        <input type="text" id="series" placeholder="(Library Management Series ; v. 5)" class="input-field w-full">
-                    </div>
-
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-700">Notes (Optional, one per line)</label>
-                        <textarea id="notes" rows="2" placeholder="Includes bibliography.&#10;Translated from German." class="input-field w-full"></textarea>
-                    </div>
-
-                    <div>
-                        <label for="subjectHeadings" class="block text-sm font-medium text-gray-700">Subject Headings (AACR2) / Subject Tracings (CCC)</label>
-                        <textarea id="subjectHeadings" rows="3" placeholder="1. Cataloging. (AACR2) or LITERATURE.&#10;ENGLISH.&#10;FICTION. (CCC)" class="input-field w-full"></textarea>
-                    </div>
-                    <div>
-                        <label for="addedEntries" class="block text-sm font-medium text-gray-700">Added Entries (AACR2) / Book Tracings (CCC)</label>
-                        <textarea id="addedEntries" rows="2" placeholder="I. Doe, Jane. (AACR2) or Title. (CCC)" class="input-field w-full"></textarea>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 pt-4">
-                        <button type="button" onclick="generateCard()" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition duration-200">
-                            Generate Catalog Cards
-                        </button>
-                        <button type="button" onclick="clearAll()" class="w-full py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
-                            Clear All
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Output Section -->
+    <div class="max-w-7xl mx-auto">
+        
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200/80 pb-6 no-print">
             <div>
-                <h2 class="text-2xl font-semibold text-gray-700 border-b pb-3 mb-2">Generated Cards Preview</h2>
-                <div id="catalogCardOutput" class="p-4 rounded-xl text-gray-800 bg-gray-50">
-                    <p id="initialMessage" class="text-center text-gray-400 py-16 transition-opacity duration-500">
-                        Enter the bibliographic data and click "Generate Catalog Cards" to view the results here.
-                    </p>
-                    <!-- Cards will be dynamically inserted here -->
+                <span class="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-2.5 inline-block border border-blue-100">
+                    <i class="fa-solid fa-graduation-cap mr-1.5"></i> MLIS Academic Sandbox
+                </span>
+                <h1 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3 font-['Geist']">
+                    AACR2 Interactive Catalog Card Laboratory
+                </h1>
+                <p class="text-slate-500 mt-1.5 max-w-2xl text-sm leading-relaxed">
+                    Perfect your cataloging theory. Explore automated ISBD punctuation mappings, switch dynamically between Main and Added Entry Cards, and study standard physical card layout constraints in real-time.
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center gap-3">
+                <div class="bg-white/80 border border-slate-200/60 backdrop-blur-md px-5 py-3 rounded-2xl shadow-sm text-right">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Engineered By</div>
+                    <div class="text-sm font-extrabold text-slate-800 flex items-center gap-1.5 justify-end mt-0.5">
+                        <span class="text-blue-600 font-black">Dr. Dhaval Patel</span>
+                    </div>
                 </div>
             </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Left Side Panel: Presets & Input Forms -->
+            <div class="lg:col-span-6 space-y-6 no-print">
+                
+                <!-- Quick-Load Presets (MLIS Training Cases) -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3.5 flex items-center gap-2">
+                        <i class="fa-solid fa-folder-open text-blue-500"></i> Standard Pedagogical Cases
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        <button onclick="loadCase('singleAuthor')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-user-tag text-blue-500 text-sm"></i> Single Author
+                        </button>
+                        <button onclick="loadCase('jointAuthor')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-users text-indigo-500 text-sm"></i> Joint Authors
+                        </button>
+                        <button onclick="loadCase('corporateBody')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-building text-violet-500 text-sm"></i> Corporate Body
+                        </button>
+                        <button onclick="loadCase('moreThanThree')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-users-viewfinder text-rose-500 text-sm"></i> 4+ Authors (Title ME)
+                        </button>
+                        <button onclick="loadCase('editedWork')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-user-pen text-amber-500 text-sm"></i> Edited Work
+                        </button>
+                        <button onclick="loadCase('multiVolume')" class="text-left text-xs bg-slate-50/50 hover:bg-blue-50/75 hover:text-blue-700 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 transition-all font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-teal-500 text-sm"></i> Multi-Volume
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main AACR2/ISBD Input Panel -->
+                <div class="glass-panel rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-pen-nib text-blue-600"></i> Cataloging Input Form
+                        </h2>
+                        <button type="button" onclick="resetForm()" class="text-xs text-slate-500 hover:text-red-600 font-semibold flex items-center gap-1.5 transition-all bg-slate-50 hover:bg-red-50 px-2.5 py-1.5 rounded-lg border border-slate-200/50 hover:border-red-100">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Form
+                        </button>
+                    </div>
+
+                    <form id="catalogForm" onsubmit="event.preventDefault(); renderCard();" class="space-y-6">
+                        
+                        <!-- 1. Call Number & Author Headings -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Area 0 & 1: Classification & Main Entry
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-4">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Call Number</label>
+                                    <input type="text" id="callNo" placeholder="e.g. 025.43 D512i" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-8">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Main Entry / Author <span class="text-slate-400 font-normal lowercase">(Last, First)</span></label>
+                                    <input type="text" id="author" placeholder="e.g. Dewey, Melvil" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Title Proper & Statement of Responsibility -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Area 2: Title & Statement of Responsibility
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Title Proper <span class="text-red-500">*</span></label>
+                                    <input type="text" id="title" required placeholder="e.g. Dewey decimal classification and relative index" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Other Title Info / Subtitle</label>
+                                        <input type="text" id="subtitle" placeholder="e.g. designed for general libraries" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Statement of Responsibility</label>
+                                        <input type="text" id="responsibility" placeholder="e.g. by Melvil Dewey ; edited by Mitchell" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Publication & Edition Area -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span> Area 3 & 4: Edition & Imprint (Publication)
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Edition</label>
+                                    <input type="text" id="edition" placeholder="e.g. 21st ed." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Place</label>
+                                    <input type="text" id="place" placeholder="e.g. Albany, N.Y." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Publisher</label>
+                                    <input type="text" id="publisher" placeholder="e.g. Forest Press" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Year</label>
+                                    <input type="text" id="year" placeholder="e.g. 1996" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Physical Description & Series Area -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Area 5 & 6: Collation & Series
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Pages / Extent</label>
+                                    <input type="text" id="pages" placeholder="e.g. 4 v. or 350 p." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Other Details</label>
+                                    <input type="text" id="ill" placeholder="e.g. ill." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Dimensions</label>
+                                    <input type="text" id="size" placeholder="e.g. 24 cm." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Series</label>
+                                    <input type="text" id="series" placeholder="e.g. Cataloging studies ; no. 4" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Notes & Standard Numbers Area -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Area 7 & 8: Notes & Standard Identifiers
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div class="md:col-span-6">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Notes <span class="text-slate-400 font-normal lowercase">(Separate with semicolons)</span></label>
+                                    <input type="text" id="notes" placeholder="e.g. Includes index; Bibliography: p. 230-245" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div class="md:col-span-6">
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">ISBN / Standard No.</label>
+                                    <input type="text" id="isbn" placeholder="e.g. 0-910608-50-5" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Tracings / Added Entry Data -->
+                        <div class="p-5 bg-slate-50/40 rounded-2xl border border-slate-100 space-y-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span> Added Entries & Tracings Data
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Subject Headings <span class="text-slate-400 font-normal lowercase">(Comma separated)</span></label>
+                                    <input type="text" id="subjects" placeholder="e.g. Classification, Dewey Decimal, Library Science" class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase tracking-wide">Joint Authors / Editors <span class="text-slate-400 font-normal lowercase">(Last, First; separated by ;)</span></label>
+                                    <input type="text" id="jointAuthors" placeholder="e.g. Mitchell, Joan S.; Custer, Benjamin A." class="input-animate w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Block -->
+                        <div class="flex gap-3 pt-2">
+                            <button type="submit" class="btn-pulse flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:translate-y-0">
+                                <i class="fa-solid fa-gears text-base animate-spin-slow"></i> Synthesize & Format Cards
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Right Side Panel: Interactive Card & Academic Guide -->
+            <div class="lg:col-span-6 space-y-6">
+                
+                <!-- Live Card Controller Bar -->
+                <div class="glass-panel p-5 rounded-3xl flex flex-col gap-4 shadow-sm border border-slate-200 no-print">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Simulator Options:</span>
+                        </div>
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="toggleVisualRules()" id="rulesBtn" class="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm shadow-blue-50">
+                                <i class="fa-solid fa-border-none"></i> Visual Indents: <span id="rulesStatus">ON</span>
+                            </button>
+                            <button onclick="printCard()" class="bg-slate-900 text-white hover:bg-slate-800 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm shadow-slate-950/20 hover:-translate-y-0.5 active:translate-y-0">
+                                <i class="fa-solid fa-print"></i> Print Card
+                            </button>
+                            <button onclick="copyToClipboard()" class="bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:-translate-y-0.5 active:translate-y-0">
+                                <i class="fa-solid fa-copy"></i> Copy Text
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Card Selection Tabs (Main Entry + Unit Added Entries) -->
+                    <div class="border-t border-slate-100 pt-4">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2.5 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-blue-500"></i> Card Catalog Selector (Unit Card Principle):
+                        </span>
+                        <div id="cardTabs" class="flex flex-wrap gap-1.5">
+                            <!-- Populated Dynamically via Javascript -->
+                            <span class="text-xs text-slate-400 italic">Generate a card to browse Main & Added Entry Cards</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Realistic Library Card Simulator Container -->
+                <div class="flex flex-col items-center">
+                    <div class="library-card-container">
+                        <div id="outputCard" class="library-card ruled-active">
+                            <!-- Standard punch hole simulation -->
+                            <div class="punch-hole"></div>
+                            <!-- Vertical line rules absolute overlay -->
+                            <div class="vertical-rules">
+                                <div class="first-indent-rule"></div>
+                                <div class="second-indent-rule"></div>
+                                <div class="third-indent-rule"></div>
+                            </div>
+                            <!-- Realistic card text content -->
+                            <div class="card-content-area" id="cardContainer">
+                                <div id="callNoBlock" class="call-number-block">
+                                    <!-- Call Number goes here -->
+                                </div>
+                                <div id="mainTextBlock" class="main-text-block">
+                                    <!-- Rendered catalog sections go here -->
+                                    <div class="flex flex-col items-center justify-center text-slate-400 h-32 italic text-sm text-center">
+                                        <i class="fa-solid fa-circle-info text-3xl mb-3 text-slate-300"></i>
+                                        Fill in catalog details or load a pedagogical template to render the 3x5 physical index card representation.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Interactive Learning Inspector Panel -->
+                <div class="bg-white border border-slate-200/85 rounded-3xl p-6 shadow-sm no-print">
+                    <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-3">
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-xl text-base border border-blue-100/50">
+                            <i class="fa-solid fa-book-open-reader"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-slate-900 font-['Geist']">Interactive AACR2 / ISBD Inspector</h3>
+                            <p class="text-xs text-slate-400">Click on any section of the generated card to highlight and examine its theoretical rules.</p>
+                        </div>
+                    </div>
+
+                    <!-- Rule Output details -->
+                    <div id="inspectorDetails" class="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 text-sm">
+                        <div class="text-slate-400 italic text-xs text-center py-6">
+                            No component highlighted. Click any text area within the library card above to display its corresponding library cataloging rule analysis.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spacing Reference Guide for MLIS Exams -->
+                <div class="bg-slate-950 text-slate-300 rounded-3xl p-6 shadow-md no-print space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2 font-['Geist']">
+                        <i class="fa-solid fa-circle-question text-blue-400"></i> Spacing & Indention Guide (Exam Essentials)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                            <div class="font-extrabold text-blue-400 mb-1.5">1st Indent (Character 9)</div>
+                            <p class="text-slate-400 leading-relaxed">Used for the Main Entry (Author) line. If the title starts the card (Main Entry under Title), the first line starts at the 2nd indent, but subsequent lines return here (Hanging Indent).</p>
+                        </div>
+                        <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                            <div class="font-extrabold text-indigo-400 mb-1.5">2nd Indent (Character 11)</div>
+                            <p class="text-slate-400 leading-relaxed">Used for Title, Subtitle, and Responsibility. Subsequent paragraphs like Collation and Notes also start here, looping back to the 1st Indent if wrapping.</p>
+                        </div>
+                        <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                            <div class="font-extrabold text-violet-400 mb-1.5">3rd Indent (Character 13)</div>
+                            <p class="text-slate-400 leading-relaxed">Used when the heading exceeds the second indent space limit. In hanging indention cards, this is where the title starts.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
     </div>
 
+    <!-- Hidden div exclusively used to format print styling perfectly -->
+    <div id="printTarget" class="hidden print-container"></div>
+
     <script>
-        const EM_DASH = '—';
-        const INDENT_AACR2_1 = '    ';   // 4 spaces (First Indentation)
-        const INDENT_AACR2_2 = '        '; // 8 spaces (Second Indentation)
-        const INDENT_CCC_1 = '        '; // 8 spaces (First Vertical)
-        const INDENT_CCC_2 = '            '; // 12 spaces (Second Vertical)
-        const PERIOD = '.';
-        
-        /**
-         * Clears all input fields and resets the output panel.
-         */
-        function clearAll() {
-            document.getElementById('aacr2Form').reset();
-            const outputDiv = document.getElementById('catalogCardOutput');
-            outputDiv.innerHTML = '<p id="initialMessage" class="text-center text-gray-400 py-16 transition-opacity duration-500">Enter the bibliographic data and click "Generate Catalog Cards" to view the results here.</p>';
-            // Reset to AACR2 on clear
-            document.querySelector('input[name="catalogingCode"][value="aacr2"]').checked = true;
+        // AACR2 Case Database for quick-load study models
+        const casePresets = {
+            singleAuthor: {
+                callNo: "025.43\nD512i",
+                author: "Dewey, Melvil",
+                title: "Dewey decimal classification and relative index",
+                subtitle: "designed for general libraries",
+                responsibility: "by Melvil Dewey ; revised and edited under the direction of Benjamin A. Custer",
+                edition: "21st ed.",
+                place: "Albany, N.Y.",
+                publisher: "Forest Press",
+                year: "1996",
+                pages: "4 v. (clviii, 3300 p.)",
+                ill: "col. ill., maps",
+                size: "26 cm.",
+                series: "Dewey studies in taxonomy ; no. 14",
+                notes: "Includes bibliographical references and index; Contents: v. 1. Manual. -- v. 2-3. Schedules. -- v. 4. Relative index",
+                isbn: "0-910608-50-5",
+                subjects: "Classification, Dewey Decimal, Library Science",
+                jointAuthors: "Custer, Benjamin A."
+            },
+            jointAuthor: {
+                callNo: "621.39\nH412d",
+                author: "Hayes, John P.",
+                title: "Digital system design and microprocessors",
+                subtitle: "",
+                responsibility: "John P. Hayes and Thomas C. Bartee",
+                edition: "International ed.",
+                place: "Auckland",
+                publisher: "McGraw-Hill",
+                year: "1984",
+                pages: "xv, 790 p.",
+                ill: "ill.",
+                size: "24 cm.",
+                series: "McGraw-Hill computer science series",
+                notes: "Includes bibliographies and index",
+                isbn: "0-07-027367-7",
+                subjects: "Digital electronics, Microprocessors, System design",
+                jointAuthors: "Bartee, Thomas C."
+            },
+            corporateBody: {
+                callNo: "020.622\nI21a",
+                author: "Indian Library Association",
+                title: "Annual report and statement of accounts",
+                subtitle: "for the year ending 31st March ...",
+                responsibility: "Indian Library Association",
+                edition: "",
+                place: "New Delhi",
+                publisher: "ILA",
+                year: "2018",
+                pages: "48 p.",
+                ill: "",
+                size: "22 cm.",
+                series: "ILA administrative series ; v. 3",
+                notes: "Cover title; Text in English and Hindi",
+                isbn: "",
+                subjects: "Indian Library Association--Periodicals, Library associations--India",
+                jointAuthors: ""
+            },
+            moreThanThree: {
+                // Main Entry under Title (hanging indention format)
+                callNo: "020.3\nL697a",
+                author: "",
+                title: "Library and information science encyclopedia",
+                subtitle: "a handbook for MLIS curriculum standards",
+                responsibility: "by Dhaval Patel, John Smith, Jane Doe and Robert Johnson",
+                edition: "2nd rev. ed.",
+                place: "Mumbai",
+                publisher: "Himalaya Publishing House",
+                year: "2024",
+                pages: "xii, 842 p.",
+                ill: "ill. ; maps",
+                size: "25 cm.",
+                series: "",
+                notes: "Includes bibliographical references and indexes",
+                isbn: "978-81-9456-231-1",
+                subjects: "Library science--Dictionaries, Information science--Handbooks",
+                jointAuthors: "Patel, Dhaval; Smith, John; Doe, Jane"
+            },
+            editedWork: {
+                callNo: "302.23\nM489t",
+                author: "",
+                title: "The media studies reader",
+                subtitle: "critical perspectives and models",
+                responsibility: "edited by Paul Marris and Sue Thornham",
+                edition: "2nd ed.",
+                place: "Edinburgh",
+                publisher: "Edinburgh University Press",
+                year: "1999",
+                pages: "xvi, 815 p.",
+                ill: "ill.",
+                size: "24 cm.",
+                series: "",
+                notes: "Previous ed.: 1996; Includes indexes",
+                isbn: "0-7486-1188-6",
+                subjects: "Mass media, Communication",
+                jointAuthors: "Marris, Paul; Thornham, Sue"
+            },
+            multiVolume: {
+                callNo: "954\nS614h",
+                author: "Smith, Vincent A.",
+                title: "The Oxford history of India",
+                subtitle: "from the earliest times to the twentieth century",
+                responsibility: "by Vincent A. Smith",
+                edition: "4th ed.",
+                place: "Oxford",
+                publisher: "Clarendon Press",
+                year: "1981",
+                pages: "3 v.",
+                ill: "ports., maps",
+                size: "20 cm.",
+                series: "",
+                notes: "Vol. 1: Ancient India. -- Vol. 2: Medieval India. -- Vol. 3: Modern India",
+                isbn: "0-19-821590-4",
+                subjects: "India--History, India--Civilization",
+                jointAuthors: ""
+            }
+        };
+
+        // Standard rules dictionary containing educational texts for MLIS students
+        const ruleGuide = {
+            callNo: {
+                title: "Classification & Call Number (Area 0)",
+                rule: "Sits at the top-left margin. It consists of the Class Number (e.g. Dewey Decimal DDC) on the first line and the Book Number on the line below. It directs users to the actual physical shelf.",
+                tip: "Make sure there are no trailing periods on the classification codes!"
+            },
+            addedEntryHeading: {
+                title: "Added Entry Heading Line (AACR2 Chapter 21)",
+                rule: "Sits on the very top line above the main entry, indented at the 2nd Indent (11th space). Subject headings are typed in ALL CAPS. Authors, Editors, Titles, and Series are in mixed case.",
+                tip: "The Unit Card principle mandates that the rest of the catalog card is kept exactly identical to the Main Entry card."
+            },
+            author: {
+                title: "Main Entry - Personal Author Heading (AACR2 Chapter 21)",
+                rule: "Rule 21.1A2. Rendered in the 'inverted format' (Surname, Forenames) starting exactly at the 1st Indent (9th character). It is followed by a period.",
+                tip: "If a book has more than 3 authors, the main entry is under Title instead, creating a Hanging Indent card."
+            },
+            titleArea: {
+                title: "Title & Statement of Responsibility Area (Rule 1.1)",
+                rule: "Starts at the 2nd Indent (11th space). Title Proper is followed by space-colon-space [ : ] if there is a subtitle, and space-slash-space [ / ] before the statement of responsibility.",
+                tip: "AACR2 capitalizes only the first word of the title proper and proper nouns."
+            },
+            editionArea: {
+                title: "Edition Area (Rule 1.2)",
+                rule: "Preceded by a point-space-dash-dash-space [ . -- ]. Standard abbreviations are used (e.g. 'ed.', 'rev.', 'nd.').",
+                tip: "Use the word 'edition' translated as standard abbreviation 'ed.'"
+            },
+            imprintArea: {
+                title: "Publication, Distribution, etc. [Imprint] (Rule 1.4)",
+                rule: "Preceded by point-space-dash-dash-space [ . -- ]. Contains Place [ : ] Publisher [ , ] and Date [ . ].",
+                tip: "Example: New York : Macmillan, 1992."
+            },
+            collationArea: {
+                title: "Physical Description Area [Collation] (Rule 1.5)",
+                rule: "Paragraph starts on a new line at the 2nd Indent, returning to the 1st Indent if it wraps. Format: Extent of item (pages/volumes) [ : ] other physical details (illustrations) [ ; ] dimension (height in cm).",
+                tip: "cm is treated as a metric symbol, not an abbreviation, but ends with a period in cataloging to close the area."
+            },
+            seriesArea: {
+                title: "Series Area (Rule 1.6)",
+                rule: "Appended immediately after the physical description, enclosed within parentheses [ (Series Title ; numbering) ] separated by space-semicolon-space.",
+                tip: "Preceded by a space-dash-dash-space if added dynamically."
+            },
+            notesArea: {
+                title: "Note Area (Rule 1.7)",
+                rule: "Starts on a new line at the 2nd Indent, returning to 1st. Each note is rendered as a separate paragraph or grouped cleanly separated by a period.",
+                tip: "Always place notes such as bibliographical references first."
+            },
+            isbnArea: {
+                title: "Standard Number Area (Rule 1.8)",
+                rule: "Starts on a new line at the 2nd Indent. Preceded by standard uppercase letters 'ISBN ' followed by numbers, dashes, and price if needed.",
+                tip: "Essential for precise inventory matching."
+            },
+            tracingsArea: {
+                title: "Tracings / Subject & Added Entries (Rule 21.29)",
+                rule: "Subject headings are designated with Arabic numerals (1. 2. 3.). Added Entries (Joint Authors, Editors, Titles, Series) are cataloged using Roman numerals (I. II. III.).",
+                tip: "Automatically derived based on fields provided in the catalog card generator. Indispensable for cross-referencing."
+            },
+            hangingTitle: {
+                title: "Hanging Indention (Main Entry under Title)",
+                rule: "Rule 21.1C. When there is no author, or more than three authors, the title becomes the main entry. The title starts at the 2nd indent, while subsequent lines in the body return to the 3rd indent (or 1st in some variations), producing a 'hanging' block look.",
+                tip: "Crucial design difference for editor/compiler works or compilation files!"
+            }
+        };
+
+        // State management
+        let isRulesActive = true;
+        let activeCaseData = null;
+        let generatedCards = []; // List of all cards available for browsing (Main Entry + Added Entries)
+        let activeCardIndex = 0;  // Index of currently viewed card
+
+        // Toggle Visual lines helper
+        function toggleVisualRules() {
+            const card = document.getElementById('outputCard');
+            const statusText = document.getElementById('rulesStatus');
+            const rulesBtn = document.getElementById('rulesBtn');
+            isRulesActive = !isRulesActive;
+            
+            if(isRulesActive) {
+                card.classList.add('ruled-active');
+                statusText.innerText = "ON";
+                rulesBtn.classList.remove('bg-slate-100', 'text-slate-700', 'border-slate-300');
+                rulesBtn.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
+            } else {
+                card.classList.remove('ruled-active');
+                statusText.innerText = "OFF";
+                rulesBtn.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-200');
+                rulesBtn.classList.add('bg-slate-100', 'text-slate-700', 'border-slate-300');
+            }
         }
 
-        /**
-         * Entry point to generate cards based on the selected cataloging code.
-         */
-        function generateCard() {
-            const code = document.querySelector('input[name="catalogingCode"]:checked').value;
-            const outputDiv = document.getElementById('catalogCardOutput');
-            const initialMessage = document.getElementById('initialMessage');
+        // Form reset handler
+        function resetForm() {
+            document.getElementById('catalogForm').reset();
+            const callNoBlock = document.getElementById('callNoBlock');
+            const mainTextBlock = document.getElementById('mainTextBlock');
+            document.getElementById('cardTabs').innerHTML = '<span class="text-xs text-slate-400 italic">Generate a card to browse Main & Added Entry Cards</span>';
             
-            // Clear previous content
-            outputDiv.innerHTML = '';
-            if(initialMessage) initialMessage.style.display = 'none';
+            callNoBlock.innerHTML = '';
+            mainTextBlock.innerHTML = `
+                <div class="flex flex-col items-center justify-center text-slate-400 h-32 italic text-sm text-center">
+                    <i class="fa-solid fa-circle-info text-3xl mb-3 text-slate-300"></i>
+                    Form cleared. Enter details or load a pre-configured pedagogical training template.
+                </div>
+            `;
+            document.getElementById('inspectorDetails').innerHTML = `
+                <div class="text-slate-400 italic text-xs text-center py-6">
+                    Form cleared. Render card first, then inspect specific regions.
+                </div>
+            `;
+            generatedCards = [];
+            activeCardIndex = 0;
+        }
 
-            // Get all common values
-            const mainEntry = document.getElementById('mainEntry').value.trim();
-            const title = document.getElementById('title').value.trim();
-            const subtitle = document.getElementById('subtitle').value.trim();
-            const responsibility = document.getElementById('responsibility').value.trim();
-            const edition = document.getElementById('edition').value.trim();
-            const place = document.getElementById('place').value.trim();
-            const publisher = document.getElementById('publisher').value.trim();
-            const pubDate = document.getElementById('pubDate').value.trim();
-            const physicalDesc = document.getElementById('physicalDesc').value.trim();
-            const callNumber = document.getElementById('callNumber').value.trim();
-            const subjectHeadings = document.getElementById('subjectHeadings').value.trim();
-            const addedEntries = document.getElementById('addedEntries').value.trim();
-            const isbn = document.getElementById('isbn').value.trim();
-            const series = document.getElementById('series').value.trim();
-            const notes = document.getElementById('notes').value.trim();
+        // Preload presets onto fields
+        function loadCase(caseKey) {
+            const data = casePresets[caseKey];
+            if(!data) return;
+
+            activeCaseData = data;
+
+            // Fill inputs
+            document.getElementById('callNo').value = data.callNo || '';
+            document.getElementById('author').value = data.author || '';
+            document.getElementById('title').value = data.title || '';
+            document.getElementById('subtitle').value = data.subtitle || '';
+            document.getElementById('responsibility').value = data.responsibility || '';
+            document.getElementById('edition').value = data.edition || '';
+            document.getElementById('place').value = data.place || '';
+            document.getElementById('publisher').value = data.publisher || '';
+            document.getElementById('year').value = data.year || '';
+            document.getElementById('pages').value = data.pages || '';
+            document.getElementById('ill').value = data.ill || '';
+            document.getElementById('size').value = data.size || '';
+            document.getElementById('series').value = data.series || '';
+            document.getElementById('notes').value = data.notes || '';
+            document.getElementById('isbn').value = data.isbn || '';
+            document.getElementById('subjects').value = data.subjects || '';
+            document.getElementById('jointAuthors').value = data.jointAuthors || '';
+
+            // Run rendering pipeline
+            renderCard();
             
-            // Basic validation
-            if (!mainEntry || !title || !place || !publisher || !pubDate || !physicalDesc || !callNumber) {
-                outputDiv.innerHTML = '<p class="text-center text-red-500 py-16">Please fill out all <span class="font-bold">required fields</span> (Call/Class No., Main Entry, Title, Place, Publisher, Date, and Collation) to generate the cards.</p>';
-                return;
-            }
+            // Auto update inspector with standard case info
+            let targetType = data.author ? "author" : "hangingTitle";
+            showStudyRule(targetType);
+        }
 
-            // --- Determine which generation logic to run ---
-            if (code === 'aacr2') {
-                generateAACR2CardLogic({
-                    mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, isbn, callNumber, subjectHeadings, addedEntries, outputDiv, series, notes
+        // Educational inspector callback
+        function showStudyRule(ruleKey) {
+            const details = ruleGuide[ruleKey];
+            const panel = document.getElementById('inspectorDetails');
+            
+            if(!details) return;
+
+            // Clear previously active highlights
+            document.querySelectorAll('.study-segment').forEach(el => {
+                el.classList.remove('active-highlight');
+            });
+
+            // Apply highlight to elements of this class
+            document.querySelectorAll(`.study-${ruleKey}`).forEach(el => {
+                el.classList.add('active-highlight');
+            });
+
+            panel.innerHTML = `
+                <div class="space-y-3 animate-fade-in">
+                    <div class="flex items-center gap-2 justify-between">
+                        <span class="font-extrabold text-blue-900 text-sm flex items-center gap-1.5 font-['Geist']">
+                            <i class="fa-solid fa-graduation-cap text-blue-600"></i> ${details.title}
+                        </span>
+                        <span class="bg-blue-100 text-blue-800 text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">AACR2 Rule</span>
+                    </div>
+                    <p class="text-slate-600 text-xs leading-relaxed font-medium">${details.rule}</p>
+                    <div class="bg-amber-50/70 border border-amber-200/50 rounded-2xl p-3 mt-2 flex items-start gap-2.5">
+                        <i class="fa-solid fa-lightbulb text-amber-500 mt-0.5 text-xs"></i>
+                        <div class="text-slate-600 text-[11px] leading-relaxed">
+                            <strong class="text-amber-800 font-extrabold">Practical Tip:</strong> ${details.tip}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto Punctuation Engine matching standard AACR2 Cataloging guidelines
+        function cleanPunctuation(str) {
+            if(!str) return '';
+            return str.trim();
+        }
+
+        // Render Card and generate all Unit Cards (Main Entry + Added Entries)
+        function renderCard() {
+            const callNo = document.getElementById('callNo').value;
+            const author = document.getElementById('author').value;
+            const title = document.getElementById('title').value;
+            const subtitle = document.getElementById('subtitle').value;
+            const responsibility = document.getElementById('responsibility').value;
+            const edition = document.getElementById('edition').value;
+            const place = document.getElementById('place').value;
+            const publisher = document.getElementById('publisher').value;
+            const year = document.getElementById('year').value;
+            const pages = document.getElementById('pages').value;
+            const ill = document.getElementById('ill').value;
+            const size = document.getElementById('size').value;
+            const series = document.getElementById('series').value;
+            const notes = document.getElementById('notes').value;
+            const isbn = document.getElementById('isbn').value;
+            const subjects = document.getElementById('subjects').value;
+            const jointAuthors = document.getElementById('jointAuthors').value;
+
+            // Generate list of all cards based on AACR2 Unit Card principles
+            generatedCards = [];
+
+            // 1. Prepare Main Entry details
+            let mainCard = {
+                type: 'Main Entry',
+                heading: '', // No heading at the top line for the Main Entry card itself
+                isHanging: !author
+            };
+            generatedCards.push(mainCard);
+
+            // 2. Extract Added Entries for Subjects (Arabic Numerals - printed in UPPERCASE)
+            if (subjects) {
+                const subArray = subjects.split(',');
+                subArray.forEach(sub => {
+                    if (sub.trim()) {
+                        let formattedSub = sub.trim().toUpperCase();
+                        generatedCards.push({
+                            type: 'Subject Added Entry',
+                            heading: formattedSub,
+                            isHanging: !author
+                        });
+                    }
                 });
-            } else if (code === 'ccc') {
-                // For CCC, we will assume 'isbn' contains the Accession Number.
-                const accessionNumber = isbn; 
-                generateCCCCardLogic({
-                    mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, accessionNumber, callNumber, subjectHeadings, addedEntries, series, notes, outputDiv
+            }
+
+            // 3. Extract Added Entries for Joint Authors, Editors, or Translators (Roman Numerals - Mixed case)
+            if (jointAuthors) {
+                const jArray = jointAuthors.split(';');
+                jArray.forEach(joint => {
+                    if (joint.trim()) {
+                        let formattedJoint = joint.trim();
+                        // Strip trailing period if any, as we format it elegantly
+                        if (formattedJoint.endsWith('.')) formattedJoint = formattedJoint.slice(0, -1);
+                        generatedCards.push({
+                            type: 'Author/Editor Added Entry',
+                            heading: formattedJoint,
+                            isHanging: !author
+                        });
+                    }
                 });
             }
-        }
 
-        /**
-         * Creates a structured card element with heading and body.
-         * @param {string} heading - The top line for the card (e.g., Title, Subject). Null for Main Entry.
-         * @param {string} body - The descriptive body of the entry.
-         * @param {string} label - The type of card (e.g., 'Main Entry', 'Title Card').
-         * @param {string} callNumber - The call number text.
-         * @param {string} code - The cataloging code ('aacr2' or 'ccc').
-         * @returns {HTMLElement} A div element representing the formatted card.
-         */
-        function createCardElement(heading, body, label, callNumber, code) {
-            const cardDiv = document.createElement('div');
-            cardDiv.className = code === 'ccc' ? 'ccc-card' : 'aacr2-card';
-            
-            // Add a label for the card type
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'card-label';
-            labelSpan.textContent = label;
-            cardDiv.appendChild(labelSpan);
-
-            let cardText = '';
-
-            // 1. Call Number / Class Number
-            const callNumberLines = callNumber.split('\n');
-            cardText += callNumberLines.join('\n') + '\n\n';
-
-            // 2. Heading (if present)
-            if (heading) {
-                cardText += heading + '\n';
+            // 4. Added Entry for Title (Mixed Case)
+            // Under AACR2, if title is already the main entry (Hanging Indention), we do NOT generate a Title Added Entry card.
+            if (author && title) {
+                let formattedTitle = cleanPunctuation(title);
+                if (formattedTitle.endsWith('.')) formattedTitle = formattedTitle.slice(0, -1);
+                generatedCards.push({
+                    type: 'Title Added Entry',
+                    heading: formattedTitle,
+                    isHanging: false
+                });
             }
 
-            // 3. Body (Indented)
-            cardText += body;
-
-            cardDiv.textContent = cardText;
-            return cardDiv;
-        }
-
-
-        /**
-         * AACR2 Logic (Main Entry, Title, Subject, Added Entry Cards)
-         */
-        function generateAACR2CardLogic(data) {
-            const { mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, isbn, callNumber, subjectHeadings, addedEntries, outputDiv, series, notes } = data;
-            
-            // --- AACR2 Punctuation Definitions and Indents ---
-            const TITLE_RESPONSIBILITY_SEP = ' / ';
-            const TITLE_SUBTITLE_SEP = ' : ';
-            const PLACE_PUBLISHER_SEP = ' : ';
-            const PUBLISHER_DATE_SEP = ', ';
-
-            // --- Core Descriptive Body Generation ---
-
-            // Title and Statement of Responsibility Area (Starts at INDENT_AACR2_2 on Main Entry Card)
-            let titleArea = title;
-            if (subtitle) {
-                titleArea += TITLE_SUBTITLE_SEP + subtitle;
-            }
-            if (responsibility) {
-                titleArea += TITLE_RESPONSIBILITY_SEP + responsibility;
-            }
-            titleArea += PERIOD;
-
-            let descriptiveBodyParts = [];
-
-            // 1. Title Area
-            descriptiveBodyParts.push(INDENT_AACR2_2 + titleArea);
-
-            // 2. Edition Area (if present)
-            if (edition) {
-                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + edition + PERIOD);
-            }
-
-            // 3. Publication, Distribution, etc., Area
-            let pubArea = place + PLACE_PUBLISHER_SEP + publisher + PUBLISHER_DATE_SEP + pubDate + PERIOD;
-            descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + pubArea);
-            
-            // 4. Physical Description Area
-            descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + physicalDesc);
-            
-            // 5. Series Area (if present)
+            // 5. Added Entry for Series (Mixed Case)
             if (series) {
-                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + series + PERIOD);
-            }
-
-            // 6. Notes Area (if present)
-            if (notes) {
-                 const noteLines = notes.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                 noteLines.forEach(note => {
-                     descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + note + PERIOD);
-                 });
-            }
-
-            // 7. ISBN Area
-            if (isbn) {
-                descriptiveBodyParts.push(INDENT_AACR2_1 + EM_DASH + ' ' + 'ISBN ' + isbn);
-            }
-            
-            // Join descriptive areas (excluding Main Entry)
-            const coreDescriptiveBody = descriptiveBodyParts.join('\n') + '\n';
-            
-            // --- Tracings Generation (Always starting flush left after body) ---
-            let tracingSection = '\n'; 
-
-            // Subject Headings (1-, 2-, 3-, ...)
-            if (subjectHeadings) {
-                tracingSection += subjectHeadings.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n') + '\n';
-            }
-            
-            // Added Entries (I., II., III., ...)
-            if (addedEntries) {
-                tracingSection += addedEntries.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n') + '\n';
-            }
-            
-            // --- Card Assembly ---
-            
-            // 1. Main Entry Card
-            // Body starts with Main Entry (INDENT_AACR2_1) followed by descriptive data 
-            const mainEntryBody = INDENT_AACR2_1 + mainEntry + PERIOD + '\n' + coreDescriptiveBody + tracingSection;
-            outputDiv.appendChild(createCardElement(null, mainEntryBody, 'AACR2 Main Entry Card', callNumber, 'aacr2'));
-
-
-            // 2. Title Card
-            // Heading: Title (Flush Left)
-            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
-            const titleHeading = title.toUpperCase() + PERIOD; 
-            // In Added Entries, the main entry (ME) line should be indented to 2nd position (INDENT_AACR2_2)
-            const titleBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
-            outputDiv.appendChild(createCardElement(titleHeading, titleBody, 'AACR2 Title Card', callNumber, 'aacr2'));
-
-
-            // 3. Subject Cards
-            // Heading: Subject (Flush Left)
-            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
-            if (subjectHeadings) {
-                const subjects = subjectHeadings.split('\n').map(line => line.trim()); 
-                subjects.filter(s => s.length > 0).forEach(subjectLine => {
-                    const subjectText = subjectLine.replace(/^\d+\.\s*/, ''); 
-                    
-                    const subjectHeading = subjectText.toUpperCase() + PERIOD;
-                    const subjectBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
-                    
-                    outputDiv.appendChild(createCardElement(subjectHeading, subjectBody, 'AACR2 Subject Card', callNumber, 'aacr2'));
+                let cleanSeries = cleanPunctuation(series);
+                if (cleanSeries.endsWith('.')) cleanSeries = cleanSeries.slice(0, -1);
+                generatedCards.push({
+                    type: 'Series Added Entry',
+                    heading: cleanSeries,
+                    isHanging: !author
                 });
             }
 
-            // 4. Added Entry Cards (Co-authors, Editors, Series, etc.)
-            // Heading: Added Entry (Flush Left)
-            // Body starts with Main Entry (INDENT_AACR2_2) followed by descriptive data (INDENT_AACR2_2 on all lines)
-            if (addedEntries) {
-                const added = addedEntries.split('\n').map(line => line.trim());
-                // Filter out 'Title' entry as it is generated separately
-                added.filter(a => a.length > 0 && !a.toLowerCase().includes('title')).forEach(entryLine => {
-                    // Remove Roman numerals (I., II., etc.) and leading space/period
-                    const entryText = entryLine.replace(/^[I|V|X]+\.\s*/, '');
-                    
-                    const entryHeading = entryText + PERIOD;
-                    const entryBody = INDENT_AACR2_2 + mainEntry + PERIOD + '\n' + coreDescriptiveBody.replace(new RegExp(INDENT_AACR2_1, 'g'), INDENT_AACR2_2) + tracingSection;
-                    
-                    outputDiv.appendChild(createCardElement(entryHeading, entryBody, 'AACR2 Added Entry Card', callNumber, 'aacr2'));
-                });
-            }
+            // Default active card view to 0 (Main Entry)
+            activeCardIndex = 0;
+
+            // Render Card switcher tabs/pills
+            renderSelectorTabs();
+
+            // Perform actual physical rendering of selected index card
+            drawActiveCard();
         }
-        
-        /**
-         * CCC Logic (Main Entry Card) - Focusing on the Main Entry which defines the structure.
-         */
-        function generateCCCCardLogic(data) {
-            const { mainEntry, title, subtitle, responsibility, edition, place, publisher, pubDate, physicalDesc, accessionNumber, callNumber, subjectHeadings, addedEntries, series, notes, outputDiv } = data;
-            
-            // CCC Indents:
-            // INDENT_CCC_1 (8 spaces) - First Vertical (FV)
-            // INDENT_CCC_2 (12 spaces) - Second Vertical (SV)
-            
-            // --- CCC Main Entry Construction ---
-            let cccBody = '';
-            
-            // 1. Author Entry (Starts at SV)
-            // CCC Author is typically in ALL CAPS.
-            cccBody += INDENT_CCC_2 + mainEntry.toUpperCase() + PERIOD + '\n';
-            
-            // 2. Title Section (Starts at SV, Subsequent lines at FV)
-            let titleSection = title.trim();
-            if (subtitle) {
-                titleSection += ': ' + subtitle.trim();
-            }
-            if (responsibility) {
-                // CCC Responsibility (e.g., ed. by...) is often placed in the note area for complex cases, 
-                // but sometimes combined with the title/edition. We'll use the title line for simplicity.
-                titleSection += '; ' + responsibility.trim();
-            }
-            titleSection += PERIOD;
-            
-            let titleLines = titleSection.match(new RegExp(`.{1,${45}}`, 'g')) || [titleSection]; 
-            
-            cccBody += INDENT_CCC_2 + titleLines[0] + '\n';
-            for (let i = 1; i < titleLines.length; i++) {
-                cccBody += INDENT_CCC_1 + titleLines[i] + '\n';
+
+        // Draw selection buttons for active Unit Card
+        function renderSelectorTabs() {
+            const tabsContainer = document.getElementById('cardTabs');
+            tabsContainer.innerHTML = '';
+
+            generatedCards.forEach((card, idx) => {
+                let badgeClass = "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200/50";
+                if (idx === activeCardIndex) {
+                    badgeClass = "bg-blue-600 text-white shadow-md shadow-blue-100 border-blue-600";
+                }
+
+                // Create short label for card view selection pill
+                let label = card.type;
+                if (card.heading) {
+                    const truncatedHeading = card.heading.length > 20 ? card.heading.substring(0, 18) + "..." : card.heading;
+                    label += ` [${truncatedHeading}]`;
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `text-[11px] font-bold px-3.5 py-2 rounded-xl transition-all border ${badgeClass} hover:-translate-y-0.5 active:translate-y-0`;
+                btn.innerText = label;
+                btn.onclick = () => {
+                    const cardElement = document.getElementById('outputCard');
+                    cardElement.classList.add('flipped');
+                    
+                    setTimeout(() => {
+                        activeCardIndex = idx;
+                        renderSelectorTabs();
+                        drawActiveCard();
+                    }, 250);
+
+                    setTimeout(() => {
+                        cardElement.classList.remove('flipped');
+                    }, 500);
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        // Output formatting based on the selected catalog unit card index
+        function drawActiveCard() {
+            if (generatedCards.length === 0) return;
+
+            const selectedCard = generatedCards[activeCardIndex];
+
+            const callNo = document.getElementById('callNo').value;
+            const author = document.getElementById('author').value;
+            const title = document.getElementById('title').value;
+            const subtitle = document.getElementById('subtitle').value;
+            const responsibility = document.getElementById('responsibility').value;
+            const edition = document.getElementById('edition').value;
+            const place = document.getElementById('place').value;
+            const publisher = document.getElementById('publisher').value;
+            const year = document.getElementById('year').value;
+            const pages = document.getElementById('pages').value;
+            const ill = document.getElementById('ill').value;
+            const size = document.getElementById('size').value;
+            const series = document.getElementById('series').value;
+            const notes = document.getElementById('notes').value;
+            const isbn = document.getElementById('isbn').value;
+            const subjects = document.getElementById('subjects').value;
+            const jointAuthors = document.getElementById('jointAuthors').value;
+
+            // Render Call Number
+            const callNoBlock = document.getElementById('callNoBlock');
+            if(callNo) {
+                const lines = callNo.split('\n');
+                callNoBlock.innerHTML = `<span class="study-segment study-callNo" onclick="showStudyRule('callNo')">${lines.join('<br>')}</span>`;
+            } else {
+                callNoBlock.innerHTML = '';
             }
 
+            const mainTextBlock = document.getElementById('mainTextBlock');
+            let cardHTML = '';
 
-            // 3. Edition Section (Starts at FV)
-            if (edition) {
-                cccBody += INDENT_CCC_1 + edition + PERIOD + '\n';
-            }
-            
-            // 4. Collation Section (Starts at FV)
-            cccBody += INDENT_CCC_1 + physicalDesc + PERIOD + '\n';
-            
-            // 5. Series Section (Starts at FV, in parenthesis)
-            if (series) {
-                // CCC Series: (Series Name. Series No.)
-                cccBody += INDENT_CCC_1 + '(' + series + ')' + PERIOD + '\n';
+            // Check if card uses Hanging Indent format
+            const isHangingIndent = selectedCard.isHanging;
+
+            // (NEW RULE) If we are on an Added Entry Card view, render the Heading line at 2nd Indent at the very top line!
+            if (selectedCard.heading) {
+                let cleanHeading = selectedCard.heading;
+                if (!cleanHeading.endsWith('.')) cleanHeading += '.';
+                cardHTML += `<div class="indent-2nd mb-1 text-blue-900 font-bold"><span class="study-segment study-addedEntryHeading" onclick="showStudyRule('addedEntryHeading')">${cleanHeading}</span></div>`;
             }
 
-            // 6. Notes Section (Starts at FV)
-            if (notes) {
-                const noteLines = notes.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                noteLines.forEach(note => {
-                    cccBody += INDENT_CCC_1 + note + PERIOD + '\n';
-                });
+            if(!isHangingIndent) {
+                // Standard Author Main Entry Heading (Indented on First line)
+                let cleanAuthor = cleanPunctuation(author);
+                if(!cleanAuthor.endsWith('.')) cleanAuthor += '.';
+                cardHTML += `<div class="indent-1st mb-1"><span class="study-segment study-author font-bold" onclick="showStudyRule('author')">${cleanAuthor}</span></div>`;
             }
 
-            // 7. Accession Number (Placed at the end, indented to FV)
-            if (accessionNumber) {
-                cccBody += '\n' + INDENT_CCC_1 + accessionNumber;
+            // Area 1 & 2: Title & Statement of Responsibility + Edition + Imprint (Paragraph Block)
+            let para1IndentClass = "indent-2nd"; 
+            
+            // Construct Title properly with ISBD punctuations
+            let titleConstruct = `<span class="study-segment ${isHangingIndent ? 'study-hangingTitle font-bold' : 'study-titleArea'}" onclick="showStudyRule('${isHangingIndent ? 'hangingTitle' : 'titleArea'}')">${cleanPunctuation(title)}`;
+            
+            if(subtitle) {
+                titleConstruct += ` : ${cleanPunctuation(subtitle)}`;
             }
-            
-            // --- Card Assembly ---
-            
-            // 1. CCC Main Entry Card (ME)
-            // Call Number / Class Number is placed on the first two lines, flush left.
-            outputDiv.appendChild(createCardElement(null, cccBody, 'CCC Main Entry Card', callNumber, 'ccc'));
+            if(responsibility) {
+                titleConstruct += ` / ${cleanPunctuation(responsibility)}`;
+            }
+            titleConstruct += `</span>`;
 
-            // 2. CCC Book Index Cards (Author, Collaborators, Series, Title)
-            // Heading: Starts at FV (for non-CCC/CC entry)
-            // Body: Starts at SV, contains the Class Number.
-            const bookIndexEntries = addedEntries.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            
-            if (bookIndexEntries.length > 0) {
-                 const indexBody = callNumber.split('\n').map(line => INDENT_CCC_2 + line.trim()).join('\n');
+            // Edition Area
+            let editionConstruct = '';
+            if(edition) {
+                let cleanEd = cleanPunctuation(edition);
+                if(!cleanEd.endsWith('.')) cleanEd += '.';
+                editionConstruct = ` <span class="study-segment study-editionArea" onclick="showStudyRule('editionArea')">. -- ${cleanEd}</span>`;
+            }
+
+            // Publication (Imprint) Area
+            let imprintConstruct = '';
+            if(place || publisher || year) {
+                let imprintParts = [];
+                if(place) imprintParts.push(cleanPunctuation(place));
+                if(publisher) {
+                    let cleanPub = cleanPunctuation(publisher);
+                    imprintParts.push(` : ${cleanPub}`);
+                }
+                if(year) {
+                    let cleanYr = cleanPunctuation(year);
+                    if(!cleanYr.endsWith('.')) cleanYr += '.';
+                    imprintParts.push(`, ${cleanYr}`);
+                }
                 
-                bookIndexEntries.forEach(entry => {
-                    const heading = INDENT_CCC_1 + entry.toUpperCase() + PERIOD; // Book Index Entry starts at FV
-                    outputDiv.appendChild(createCardElement(heading, indexBody, 'CCC Book Index Card', callNumber, 'ccc'));
+                let imprintString = imprintParts.join('');
+                imprintConstruct = ` <span class="study-segment study-imprintArea" onclick="showStudyRule('imprintArea')">. -- ${imprintString}</span>`;
+            }
+
+            cardHTML += `<div class="${para1IndentClass} mb-1">${titleConstruct}${editionConstruct}${imprintConstruct}</div>`;
+
+            // Area 5 & 6: Collation & Series Area (Start on a new line at 2nd Indent)
+            if(pages || ill || size || series) {
+                let collationParts = [];
+                if(pages) collationParts.push(cleanPunctuation(pages));
+                if(ill) collationParts.push(` : ${cleanPunctuation(ill)}`);
+                if(size) {
+                    let cleanSz = cleanPunctuation(size);
+                    if(!cleanSz.endsWith('.')) cleanSz += '.';
+                    collationParts.push(` ; ${cleanSz}`);
+                }
+                
+                let collationStr = collationParts.join('');
+                let seriesStr = '';
+                if(series) {
+                    seriesStr = ` <span class="study-segment study-seriesArea" onclick="showStudyRule('seriesArea')">. -- (${cleanPunctuation(series)})</span>`;
+                }
+
+                cardHTML += `<div class="indent-2nd mb-1"><span class="study-segment study-collationArea" onclick="showStudyRule('collationArea')">${collationStr}</span>${seriesStr}</div>`;
+            }
+
+            // Area 7: Notes Area
+            if(notes) {
+                const noteItems = notes.split(';');
+                noteItems.forEach(note => {
+                    if(note.trim()) {
+                        let cleanNote = note.trim();
+                        if(!cleanNote.endsWith('.')) cleanNote += '.';
+                        cardHTML += `<div class="indent-2nd mb-1"><span class="study-segment study-notesArea" onclick="showStudyRule('notesArea')">${cleanNote}</span></div>`;
+                    }
                 });
             }
-            
-            // 3. CCC Class Index Cards (Subject Tracings - Chain Procedure)
-            if (subjectHeadings) {
-                 const subjects = subjectHeadings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-                 
-                 subjects.forEach(subjectLine => {
-                    // Subject Class Heading (Chain Procedure output, e.g., LITERATURE.) - Flush left
-                    const heading = subjectLine.toUpperCase() + PERIOD; 
-                    
-                    // Body: Repeat Class Number (CC) at FV
-                    const classBody = callNumber.split('\n').filter((_, i) => i === 0).map(line => INDENT_CCC_1 + line.trim()).join('\n');
 
-                    outputDiv.appendChild(createCardElement(heading, classBody, 'CCC Class Index Card', callNumber, 'ccc'));
+            // Area 8: Standard Identifiers (ISBN)
+            if(isbn) {
+                let cleanIsbn = cleanPunctuation(isbn);
+                cardHTML += `<div class="indent-2nd mb-2"><span class="study-segment study-isbnArea" onclick="showStudyRule('isbnArea')">ISBN ${cleanIsbn}</span></div>`;
+            }
+
+            // Added Entry / Tracings calculations
+            let tracingsList = [];
+            let subjectIndex = 1;
+            
+            // Subjects (Arabic numerals)
+            if(subjects) {
+                const subArray = subjects.split(',');
+                subArray.forEach(sub => {
+                    if(sub.trim()) {
+                        let cleanSub = sub.trim();
+                        if(!cleanSub.endsWith('.')) cleanSub += '.';
+                        tracingsList.push(`${subjectIndex}. ${cleanSub}`);
+                        subjectIndex++;
+                    }
                 });
+            }
+
+            // Joint Authors / Secondary entries (Roman numerals)
+            let romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+            let romanIndex = 0;
+
+            if(jointAuthors) {
+                const jArray = jointAuthors.split(';');
+                jArray.forEach(joint => {
+                    if(joint.trim()) {
+                        let cleanJoint = joint.trim();
+                        if(!cleanJoint.endsWith('.')) cleanJoint += '.';
+                        tracingsList.push(`${romanNumerals[romanIndex]}. ${cleanJoint}`);
+                        romanIndex++;
+                    }
+                });
+            }
+
+            // Title tracing
+            if(author && title) {
+                tracingsList.push(`${romanNumerals[romanIndex]}. Title.`);
+                romanIndex++;
+            }
+
+            // Series tracing
+            if(series) {
+                tracingsList.push(`${romanNumerals[romanIndex]}. Series.`);
+            }
+
+            if(tracingsList.length > 0) {
+                cardHTML += `<div class="indent-2nd mt-3 leading-tight"><span class="study-segment study-tracingsArea text-xs text-slate-600 font-semibold" onclick="showStudyRule('tracingsArea')">${tracingsList.join('  ')}</span></div>`;
+            }
+
+            mainTextBlock.innerHTML = cardHTML;
+
+            // Highlight heading top rule automatically if on added entry card view
+            if (selectedCard.heading) {
+                showStudyRule('addedEntryHeading');
             }
         }
 
-
-        // Set up the initial state: populate fields with sample data and generate cards.
-        document.addEventListener('DOMContentLoaded', () => {
-            // Populate fields with CCC Sample data
-            document.getElementById('callNumber').value = 'O152,1M97\nR97'; // CCC: Class No. + Book No.
-            document.getElementById('mainEntry').value = 'ROY, ARUNDHATI';
-            document.getElementById('title').value = 'The God of Small Things';
-            document.getElementById('subtitle').value = 'A Novel';
-            document.getElementById('responsibility').value = 'by Arundhati Roy';
-            document.getElementById('edition').value = '1st ed.';
-            document.getElementById('place').value = 'New Delhi';
-            document.getElementById('publisher').value = 'India Ink';
-            document.getElementById('pubDate').value = '1997';
-            document.getElementById('physicalDesc').value = '340p. 20cm.'; // CCC collation is shorter
-            document.getElementById('isbn').value = 'A12345'; // Used as Accession Number for CCC
-            document.getElementById('series').value = 'Novel Series ; v. 3';
-            document.getElementById('notes').value = 'Includes glossary.';
-            document.getElementById('subjectHeadings').value = 'LITERATURE.\nENGLISH.\nFICTION.\nINDIAN AUTHORS.'; // CCC Subject Headings
-            document.getElementById('addedEntries').value = 'TITLE.\nSeries.';
+        // Print Card exclusively (Extracts exact dimensions and forces layout)
+        function printCard() {
+            const card = document.getElementById('outputCard');
+            const printTarget = document.getElementById('printTarget');
             
-            // Automatically generate cards on load for immediate display (CCC selected by default now)
-            document.querySelector('input[name="catalogingCode"][value="ccc"]').checked = true;
-            generateCard();
-        });
+            // Duplicate card node inside print specific frame
+            printTarget.innerHTML = '';
+            const clonedCard = card.cloneNode(true);
+            clonedCard.classList.remove('w-full');
+            
+            // Force strict spacing rules for precise 3x5 layout during printing
+            clonedCard.style.width = "5in";
+            clonedCard.style.height = "3in";
+            
+            printTarget.appendChild(clonedCard);
+            
+            window.print();
+        }
+
+        // Clipboard management workaround avoiding iframe barriers
+        function copyToClipboard() {
+            const card = document.getElementById('outputCard');
+            let textRep = card.innerText;
+            
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textRep;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showNotification('Succesfully copied card details to clipboard!');
+            } catch (err) {
+                showNotification('Unable to access clipboard. Copy details manually.');
+            }
+            
+            document.body.removeChild(tempTextArea);
+        }
+
+        // Custom in-app notification popups without blocking UI thread
+        function showNotification(message) {
+            const notifyEl = document.createElement('div');
+            notifyEl.className = "fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-semibold py-3.5 px-6 rounded-2xl shadow-xl z-50 transition-all transform translate-y-10 opacity-0 border border-slate-800 flex items-center gap-2";
+            notifyEl.innerHTML = `<i class="fa-solid fa-circle-check text-green-400"></i> ${message}`;
+            
+            document.body.appendChild(notifyEl);
+            
+            setTimeout(() => {
+                notifyEl.classList.remove('translate-y-10', 'opacity-0');
+            }, 100);
+
+            setTimeout(() => {
+                notifyEl.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    document.body.removeChild(notifyEl);
+                }, 500);
+            }, 3000);
+        }
+
+        // Initialize with Melvil Dewey preset load on runtime setup
+        window.onload = function() {
+            loadCase('singleAuthor');
+        };
     </script>
 </body>
 </html>
